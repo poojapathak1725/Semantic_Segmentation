@@ -33,8 +33,8 @@ fcn_model.apply(init_weights)
 
 optimizer = __ # choose an optimizer
 
-device = __ # determine which device to use (gpu or cpu)
-fcn_model = fcn_model.__ #transfer the model to the device
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu") # determine which device to use (gpu or cpu)
+fcn_model = fcn_model.to(device) #transfer the model to the device
 
 def train():
     best_iou_score = 0.0
@@ -46,8 +46,8 @@ def train():
             __
 
             # both inputs and labels have to reside in the same device as the model's
-            inputs = inputs.__ #transfer the input to the same device as the model's
-            labels = labels.__ #transfer the labels to the same device as the model's
+            inputs = inputs.to(device) #transfer the input to the same device as the model's
+            labels = labels.to(device) #transfer the labels to the same device as the model's
 
             outputs = fcn_model(inputs) #we will not need to transfer the output, it will be automatically in the same device as the model's!
             
