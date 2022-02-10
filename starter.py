@@ -1,3 +1,4 @@
+from cv2 import reduce
 from basic_fcn import *
 from dataloader import *
 from utils import *
@@ -25,7 +26,7 @@ def init_weights(m):
         torch.nn.init.normal_(m.bias.data) #xavier not applicable for biases   
 
 epochs = 50       
-criterion = nn.CrossEntropyLoss() # Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
+criterion = nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100, reduce=None, reduction="mean") # Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
 n_class = 10
 fcn_model = FCN(n_class=n_class)
 fcn_model.apply(init_weights)
@@ -37,7 +38,7 @@ fcn_model = fcn_model.to(device) #transfer the model to the device
 
 def train():
     best_iou_score = 0.0
-    best_model=None
+    best_model = None
     
     for epoch in range(epochs):
         ts = time.time()
@@ -51,11 +52,10 @@ def train():
 
             outputs = fcn_model(inputs) #we will not need to transfer the output, it will be automatically in the same device as the model's!
             
-            loss = criterion(outputs,labels) #calculate loss
+            loss = criterion(outputs, labels) #calculate loss
             
             # backpropagate
             loss.backward()
-
             # update the weights
             optimizer.step()
 
@@ -69,7 +69,8 @@ def train():
         
         if current_miou_score > best_iou_score:
             best_iou_score = current_miou_score
-            best_model=deepcopy(fcn_model)
+            #save the best model
+            best_model = deepcopy(fcn_model)
             
     
 
@@ -90,10 +91,11 @@ def val(epoch):
 
             output = fcn_model(input)
 
-            loss = criterion(output,label) #calculate the loss
+            loss = criterion(output, label) #calculate the loss
             losses.append(loss.item()) #call .item() to get the value from a tensor. The tensor can reside in gpu but item() will still work 
 
             pred = np.argmax(output, axis=1) # Make sure to include an argmax to get the prediction from the outputs of your model
+            pred = pred.to(device)
 
             mean_iou_scores.append(np.nanmean(iou(pred, label, n_class)))  # Complete this function in the util, notice the use of np.nanmean() here
         
