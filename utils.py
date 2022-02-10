@@ -10,13 +10,12 @@ def iou(pred, target, n_classes = 10):
   for cls in range(n_classes-1):  # last class is ignored
     pred_inds = pred == cls
     target_inds = target == cls
-    intersection = __ #complete this
-    union = __ #complete this
+    intersection = intersection = (pred_inds[target_inds]).sum().data[0]  # Cast to long to prevent overflows
+    union = pred_inds.sum().data[0] + target_inds.sum().data[0] - intersection
     if union == 0:
       ious.append(float('nan'))  # If there is no ground truth, do not include in evaluation
     else:
-      __ #complete this
-
+      ious.append(float(intersection) / float(max(union, 1)))
   return np.array(ious)
 
 def pixel_acc(pred, target):
