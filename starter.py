@@ -18,7 +18,7 @@ test_dataset = TASDataset('tas500v1.1', eval=True, mode='test')
 
 train_loader = DataLoader(dataset=train_dataset, batch_size= 256, shuffle=True)
 val_loader = DataLoader(dataset=val_dataset, batch_size= 256, shuffle=False)
-test_loader = DataLoader(dataset=test_dataset, batch_size= 256, shuffle=False)
+test_loader = DataLoader(dataset=test_dataset, batch_size= len(test_dataset), shuffle=False)
 
 def init_weights(m):
     if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
@@ -35,10 +35,10 @@ optimizer = optim.Adam(fcn_model.parameters(), lr = 0.001) # choose an optimizer
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu") # determine which device to use (gpu or cpu)
 fcn_model = fcn_model.to(device) #transfer the model to the device
+best_model = None
 
 def train():
     best_iou_score = 0.0
-    best_model = None
     
     for epoch in range(epochs):
         ts = time.time()
@@ -111,8 +111,30 @@ def val(epoch):
     return np.mean(mean_iou_scores)
 
 def test():
-    pass
+    losses = []
+    mean_iou_scores = []
+    accuracy = []
+
     #TODO: load the best model and complete the rest of the function for testing
+    with torch.no_grad():
+
+        for iter, (input, label) in enumerate(test_loader):
+
+            # both inputs and labels have to reside in the same device as the model's
+            input = input.to(device) #transfer the input to the same device as the model's
+            label = label.to(device) #transfer the labels to the same device as the model's
+
+            output = best_model(input)
+
+            loss = criterion(output, label) #calculate the loss
+            losses.append(loss.item())
+            pred = np.argmax(output, axis=1) # Make sure to include an argmax to get the prediction from the outputs of your model
+            pred = pred.to(device)
+
+            mean_iou_scores.append(np.nanmean(iou(pred, label, n_class)))  # Complete this function in the util, notice the use of np.nanmean() here
+        
+            accuracy.append(pixel_acc(pred, label)) # Complete this function in the util
+
 
 if __name__ == "__main__":
     val(0)  # show the accuracy before training

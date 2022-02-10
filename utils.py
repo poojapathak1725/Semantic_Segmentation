@@ -1,3 +1,4 @@
+from cv2 import accumulate
 import numpy as np
 
 
@@ -20,3 +21,7 @@ def iou(pred, target, n_classes = 10):
 
 def pixel_acc(pred, target):
     #TODO complete this function, make sure you don't calculate the accuracy for undefined class ("9")
+    total = target.size(0) * target.size(1) * target.size(2)
+    correct = (pred == target).sum().item()
+    acc = correct / total
+    return acc 
