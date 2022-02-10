@@ -9,9 +9,9 @@ class FCN(nn.Module):
         self.n_class = n_class
         self.conv1   = nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1, dilation=1)
         self.bnd1    = nn.BatchNorm2d(32)
-        self.conv2   = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, dilation=1)
+        self.conv2   = nn.Conv2d(32,64, kernel_size=3, stride=2, padding=1, dilation=1)
         self.bnd2    = nn.BatchNorm2d(64)
-        self.conv3   = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, dilation=1)
+        self.conv3   = nn.Conv2d(64,128, kernel_size=3, stride=2, padding=1, dilation=1)
         self.bnd3    = nn.BatchNorm2d(128)
         self.conv4   = nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1, dilation=1)
         self.bnd4    = nn.BatchNorm2d(256)
