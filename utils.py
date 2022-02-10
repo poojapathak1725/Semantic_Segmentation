@@ -11,8 +11,8 @@ def iou(pred, target, n_classes = 10):
   for cls in range(n_classes-1):  # last class is ignored
     pred_inds = pred == cls
     target_inds = target == cls
-    intersection = intersection = (pred_inds[target_inds]).sum().data[0]  # Cast to long to prevent overflows
-    union = pred_inds.sum().data[0] + target_inds.sum().data[0] - intersection
+    intersection = (pred_inds[target_inds]).sum().data  # Cast to long to prevent overflows
+    union = pred_inds.sum().data + target_inds.sum().data - intersection
     if union == 0:
       ious.append(float('nan'))  # If there is no ground truth, do not include in evaluation
     else:

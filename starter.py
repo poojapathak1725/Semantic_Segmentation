@@ -8,16 +8,19 @@ from torch.utils.data import DataLoader
 import torch
 import gc
 from copy import deepcopy
+from zipfile import ZipFile
 
-
+# with ZipFile('tas500v1.1.zip','r') as zip_ref:
+#     zip_ref.extractall('')
+    
 # TODO: Some missing values are represented by '__'. You need to fill these up.
 train_dataset = TASDataset('tas500v1.1') 
 val_dataset = TASDataset('tas500v1.1', eval=True, mode='val')
 test_dataset = TASDataset('tas500v1.1', eval=True, mode='test')
 
 
-train_loader = DataLoader(dataset=train_dataset, batch_size= 256, shuffle=True)
-val_loader = DataLoader(dataset=val_dataset, batch_size= 256, shuffle=False)
+train_loader = DataLoader(dataset=train_dataset, batch_size= 16, shuffle=True)
+val_loader = DataLoader(dataset=val_dataset, batch_size= 16, shuffle=False)
 test_loader = DataLoader(dataset=test_dataset, batch_size= len(test_dataset), shuffle=False)
 
 def init_weights(m):
@@ -31,7 +34,7 @@ n_class = 10
 fcn_model = FCN(n_class=n_class)
 fcn_model.apply(init_weights)
 
-optimizer = optim.Adam(fcn_model.parameters(), lr = 0.001) # choose an optimizer
+optimizer = optim.Adam(fcn_model.parameters(), lr = 0.015) # choose an optimizer
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu") # determine which device to use (gpu or cpu)
 fcn_model = fcn_model.to(device) #transfer the model to the device
@@ -39,7 +42,6 @@ best_model = None
 
 def train():
     best_iou_score = 0.0
-    
     for epoch in range(epochs):
         ts = time.time()
         for iter, (inputs, labels) in enumerate(train_loader):
@@ -49,7 +51,8 @@ def train():
             # both inputs and labels have to reside in the same device as the model's
             inputs = inputs.to(device) #transfer the input to the same device as the model's
             labels = labels.to(device) #transfer the labels to the same device as the model's
-
+            labels = labels.to(dtype=torch.long)
+            
             outputs = fcn_model(inputs) #we will not need to transfer the output, it will be automatically in the same device as the model's!
             
             loss = criterion(outputs, labels) #calculate loss
@@ -72,7 +75,7 @@ def train():
             #save the best model
             best_model = deepcopy(fcn_model)
             
-    
+        torch.cuda.empty_cache()
 
 def val(epoch):
     fcn_model.eval() # Put in eval mode (disables batchnorm/dropout) !
@@ -88,14 +91,14 @@ def val(epoch):
             # both inputs and labels have to reside in the same device as the model's
             input = input.to(device) #transfer the input to the same device as the model's
             label = label.to(device) #transfer the labels to the same device as the model's
-
             output = fcn_model(input)
-
+            
+            label = label.to(dtype=torch.long)
+            
             loss = criterion(output, label) #calculate the loss
             losses.append(loss.item()) #call .item() to get the value from a tensor. The tensor can reside in gpu but item() will still work 
-
-            pred = np.argmax(output, axis=1) # Make sure to include an argmax to get the prediction from the outputs of your model
-            pred = pred.to(device)
+            predictions = nn.functional.softmax(output,dim=1)
+            pred = predictions.argmax(axis=1) # Make sure to include an argmax to get the prediction from the outputs of your model
 
             mean_iou_scores.append(np.nanmean(iou(pred, label, n_class)))  # Complete this function in the util, notice the use of np.nanmean() here
         
@@ -123,13 +126,13 @@ def test():
             # both inputs and labels have to reside in the same device as the model's
             input = input.to(device) #transfer the input to the same device as the model's
             label = label.to(device) #transfer the labels to the same device as the model's
-
+            label = label.to(dtype=torch.long)
+            
             output = best_model(input)
 
             loss = criterion(output, label) #calculate the loss
             losses.append(loss.item())
-            pred = np.argmax(output, axis=1) # Make sure to include an argmax to get the prediction from the outputs of your model
-            pred = pred.to(device)
+            pred = output.argmax(axis=1) # Make sure to include an argmax to get the prediction from the outputs of your model
 
             mean_iou_scores.append(np.nanmean(iou(pred, label, n_class)))  # Complete this function in the util, notice the use of np.nanmean() here
         
