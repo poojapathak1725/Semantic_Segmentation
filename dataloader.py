@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 from torchvision import transforms
-
+import albumentations
+import albumentations.pytorch
 
 import random
 import os
@@ -39,11 +40,20 @@ class TASDataset(Dataset):
         self.mode = mode
 
         # You can use any valid transformations here
+        self.transform_alb = albumentations.Compose([ 
+        # albumentations.Resize(256, 256), 
+        # albumentations.RandomCrop(668, 300),
+        albumentations.HorizontalFlip(),
+        albumentations.VerticalFlip(),
+        albumentations.GaussNoise()
+        ])
 
         # The following transformation normalizes each channel using the mean and std provided
         self.transform = transforms.Compose([transforms.ToTensor(),
                                               transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
                                               ])
+
+
         # we will use the following width and height to resize
         self.width = 768
         self.height = 384
@@ -100,6 +110,12 @@ class TASDataset(Dataset):
             
         image = np.asarray(PIL.Image.open(self.paths[idx][0]).resize((self.width, self.height)))
         mask_image = np.asarray(PIL.Image.open(self.paths[idx][1]).resize((self.width, self.height), PIL.Image.NEAREST))
+
+        if self.transform_alb:
+            image_transformed = self.transform_alb(image=image, mask=mask_image)
+
+        image = image_transformed["image"]
+        mask_image = image_transformed["mask"]
         mask =  rgb2vals(mask_image, self.color2class)
 
         if self.transform:

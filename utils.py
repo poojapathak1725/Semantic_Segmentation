@@ -1,6 +1,6 @@
 from cv2 import accumulate
 import numpy as np
-
+import torch
 
 def iou(pred, target, n_classes = 10):
   ious = []
@@ -21,7 +21,9 @@ def iou(pred, target, n_classes = 10):
 
 def pixel_acc(pred, target):
     #TODO complete this function, make sure you don't calculate the accuracy for undefined class ("9")
-    total = target.size(0) * target.size(1) * target.size(2)
-    correct = (pred == target).sum().item()
+    total = torch.sum(target < 9).item()
+    correct = torch.sum((pred == target) * (target < 9)).item()
+    # total = target.size(0) * target.size(1) * target.size(2)
+    # correct = (pred == target).sum().item()
     acc = correct / total
     return acc 

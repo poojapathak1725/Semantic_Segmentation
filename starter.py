@@ -10,6 +10,9 @@ import gc
 from copy import deepcopy
 from zipfile import ZipFile
 import matplotlib.pyplot as plt
+from unet import *
+from transfer import *
+from og_model import *
 
 # with ZipFile('tas500v1.1.zip','r') as zip_ref:
 #     zip_ref.extractall('')
@@ -42,16 +45,17 @@ def dice_loss(input, target):
     
     return 1 - ((2. * intersection + smooth) / (A_sum + B_sum + smooth) )
 
-epochs = 50       
+epochs = 50  
 
 # # to use cross entropy loss
-# criterion = nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100, reduce=None, reduction="mean") # Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
-
-# to use dice coefficient loss
-criterion = dice_loss
+criterion = nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100, reduce=None, reduction="mean") # Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
+# criterion = dice_loss # to use dice coefficient loss
 
 n_class = 10
-fcn_model = FCN(n_class=n_class)
+fcn_model = FCN(n_class=n_class) # to use basic fcn model
+# fcn_model = UNet(n_class=n_class) # to use the unet model
+# fcn_model = TransferNet(n_class=n_class).createDeepLabModel() # to use model from transfer learning
+
 fcn_model.apply(init_weights)
 
 optimizer = optim.Adam(fcn_model.parameters(), lr = 0.015) # choose an optimizer
@@ -64,6 +68,7 @@ train_loss_epochs = []
 val_loss_epochs = []
 epoch_list = [i+1 for i in range(epochs)]
 
+# class to colour mappings
 class2color = {
     0: (0.4117647058823529, 0.4117647058823529, 0.4117647058823529), \
     1: (0,128,0), \
