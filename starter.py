@@ -55,6 +55,7 @@ n_class = 10
 fcn_model = FCN(n_class=n_class) # to use basic fcn model
 # fcn_model = UNet(n_class=n_class) # to use the unet model
 # fcn_model = TransferNet(n_class=n_class).createDeepLabModel() # to use model from transfer learning
+# fcn_model = OGNet(n_class=n_class) # to use the custom model
 
 fcn_model.apply(init_weights)
 
@@ -119,14 +120,14 @@ def train():
             #save the best model
             best_model = torch.save(fcn_model.state_dict(),"best_model.pt")
             
-        plt.figure()
-        plt.plot(epoch_list, train_loss_epochs, label="Train Loss")
-        plt.plot(epoch_list, val_loss_epochs, label="Val Loss")
-        plt.xlabel("epochs")
-        plt.ylabel("train and val loss")
-        plt.legend()
-        plt.savefig("plots/train_val_loss.png")
-        torch.cuda.empty_cache()
+    plt.figure()
+    plt.plot(epoch_list, train_loss_epochs, label="Train Loss")
+    plt.plot(epoch_list, val_loss_epochs, label="Val Loss")
+    plt.xlabel("epochs")
+    plt.ylabel("train and val loss")
+    plt.legend()
+    plt.savefig("plots/train_val_loss.png")
+    torch.cuda.empty_cache()
 
 def val(epoch):
     fcn_model.eval() # Put in eval mode (disables batchnorm/dropout) !
@@ -189,11 +190,13 @@ def test():
 
             loss = criterion(output, label)
             losses.append(loss.item())
-            pred = output.argmax(axis=1)
+            predictions = nn.functional.softmax(output,dim=1)
+            pred = predictions.argmax(axis=1)
+            # pred = output.argmax(axis=1)
 
-            mean_iou_scores.append(np.nanmean(iou(pred, label, n_class)))
+            # mean_iou_scores.append(np.nanmean(iou(pred, label, n_class)))
         
-            accuracy.append(pixel_acc(pred, label))
+            # accuracy.append(pixel_acc(pred, label))
     
     # visualizing the segmented image
     first_image = pred[0]
@@ -201,6 +204,12 @@ def test():
     for cls in range(n_class):
         segmented_image[first_image == cls] = class2color[cls]
     plt.imsave("plots/test_segmented.png", segmented_image)
+    
+    first_label = label[0]
+    segmented_image = np.ones((384,768,3))
+    for cls in range(n_class):
+        segmented_image[first_label == cls] = class2color[cls]
+    plt.imsave("plots/og_segmented.png", segmented_image)
 
 if __name__ == "__main__":
     val(0)  # show the accuracy before training

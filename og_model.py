@@ -1,4 +1,3 @@
-from turtle import forward
 import torch
 import torch.nn as nn
 from torchvision import models
@@ -33,12 +32,13 @@ class OGNet(nn.Module):
         block = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=4, padding=1, dilation=(2,1)),
             nn.BatchNorm2d(out_channels),
-            nn.LeakyReLU,
+            nn.LeakyReLU(),
             nn.Conv2d(out_channels, out_channels, kernel_size=4, padding=1, dilation=(2,1)),
             nn.BatchNorm2d(out_channels),
-            nn.LeakyReLU,
+            nn.LeakyReLU(),
             nn.ConvTranspose2d(out_channels, out_channels, kernel_size=4, padding=1, stride=2, output_padding=1, dilation=(2,1))
         )
+        return block
 
     def forward(self,x):
         x1 = self.maxpool(self.enc1(x))
