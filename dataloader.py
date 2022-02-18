@@ -40,12 +40,13 @@ class TASDataset(Dataset):
         self.mode = mode
 
         # You can use any valid transformations here
-        # self.transform_alb = albumentations.Compose([ 
-        # albumentations.HorizontalFlip(),
-        # albumentations.VerticalFlip(),
-        # albumentations.GaussNoise()
-        # ])
+        self.transform_alb = albumentations.Compose([ 
+        albumentations.HorizontalFlip(p=0.3),
+        albumentations.VerticalFlip(p=0.2),
+        albumentations.GaussNoise(p=0.45)
+        ])
 
+        # comment this line to augment the data
         self.transform_alb = None
 
         # The following transformation normalizes each channel using the mean and std provided

@@ -15,14 +15,14 @@ class OGNet(nn.Module):
         self.dec1 = self.decoder_block(256,128)
         self.dec2 = self.decoder_block(128,64)
         self.dec3 = self.decoder_block(64,32)
-        self.classifier = nn.Conv2d(32, n_class, kernel_size=1)
+        self.classifier = nn.Conv2d(32, n_class, kernel_size=4, padding=1, dilation=1)
 
     def encoder_block(self, in_channels, out_channels):
         block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=4, padding=1, dilation=(2,1)),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, dilation=(2,2)),
             nn.BatchNorm2d(out_channels),
             nn.LeakyReLU(),
-            nn.Conv2d(out_channels, out_channels, kernel_size=4, padding=1, dilation=(2,1)),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, dilation=(2,2)),
             nn.BatchNorm2d(out_channels),
             nn.LeakyReLU()
         )
@@ -30,13 +30,13 @@ class OGNet(nn.Module):
 
     def decoder_block(self, in_channels, out_channels):
         block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=4, padding=1, dilation=(2,1)),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, dilation=(2,2)),
             nn.BatchNorm2d(out_channels),
             nn.LeakyReLU(),
-            nn.Conv2d(out_channels, out_channels, kernel_size=4, padding=1, dilation=(2,1)),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, dilation=(2,2)),
             nn.BatchNorm2d(out_channels),
             nn.LeakyReLU(),
-            nn.ConvTranspose2d(out_channels, out_channels, kernel_size=4, padding=1, stride=2, output_padding=1, dilation=(2,1))
+            nn.ConvTranspose2d(out_channels, out_channels, kernel_size=4, padding=1, stride=1, output_padding=1, dilation=(4,4))
         )
         return block
 

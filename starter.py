@@ -23,9 +23,9 @@ val_dataset = TASDataset('tas500v1.1', eval=True, mode='val')
 test_dataset = TASDataset('tas500v1.1', eval=True, mode='test')
 
 
-train_loader = DataLoader(dataset=train_dataset, batch_size= 16, shuffle=True)
-val_loader = DataLoader(dataset=val_dataset, batch_size= 16, shuffle=False)
-test_loader = DataLoader(dataset=test_dataset, batch_size= len(test_dataset), shuffle=False)
+train_loader = DataLoader(dataset=train_dataset, batch_size= 1, shuffle=True)
+val_loader = DataLoader(dataset=val_dataset, batch_size= 1, shuffle=False)
+test_loader = DataLoader(dataset=test_dataset, batch_size= 1, shuffle=False)
 
 def init_weights(m):
     if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
@@ -40,12 +40,12 @@ def dice_loss(input, target):
     tflat = target.contiguous().view(-1)
     intersection = (iflat * tflat).sum()
 
-    A_sum = torch.sum(tflat * iflat)
+    A_sum = torch.sum(iflat * iflat)
     B_sum = torch.sum(tflat * tflat)
     
-    return 1 - ((2. * intersection + smooth) / (A_sum + B_sum + smooth) )
+    return abs(1 - ((2. * intersection + smooth) / (A_sum + B_sum + smooth) ))
 
-epochs = 50  
+epochs = 80
 
 # # to use cross entropy loss
 criterion = nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100, reduce=None, reduction="mean") # Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
@@ -72,11 +72,11 @@ epoch_list = [i+1 for i in range(epochs)]
 # class to colour mappings
 class2color = {
     0: (0.4117647058823529, 0.4117647058823529, 0.4117647058823529), \
-    1: (0,128,0), \
+    1: (0,128/255,0), \
     2: (0.9137254901960784, 0.5882352941176471, 0.47843137254901963), \
-    3: (0,  0,142), \
+    3: (0,  0,142/255), \
     4: (0.0, 0.7490196078431373, 1.0),\
-    5: (255,255,0), \
+    5: (255/255,255/255,0), \
     6: (1,0,0), \
     7: (1.0, 0.7137254901960784, 0.7568627450980392),\
     8: (0.8627450980392157, 0.8627450980392157, 0.8627450980392157), \
@@ -113,12 +113,12 @@ def train():
         print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
         train_loss_epochs.append(np.mean(losses))
 
-        current_miou_score = val(epoch)
+        current_miou_score = val(epoch+1)
         
         if current_miou_score > best_iou_score:
             best_iou_score = current_miou_score
             #save the best model
-            best_model = torch.save(fcn_model.state_dict(),"best_model.pt")
+            best_model = torch.save(fcn_model.state_dict(),"best_model_og.pt")
             
     plt.figure()
     plt.plot(epoch_list, train_loss_epochs, label="Train Loss")
@@ -146,7 +146,6 @@ def val(epoch):
             output = fcn_model(input)
             
             label = label.to(dtype=torch.long)
-            
             loss = criterion(output, label)
             losses.append(loss.item()) #call .item() to get the value from a tensor. The tensor can reside in gpu but item() will still work 
             predictions = nn.functional.softmax(output,dim=1)
@@ -160,8 +159,10 @@ def val(epoch):
     print(f"Loss at epoch: {epoch} is {np.mean(losses)}")
     print(f"IoU at epoch: {epoch} is {np.mean(mean_iou_scores)}")
     print(f"Pixel acc at epoch: {epoch} is {np.mean(accuracy)}")
-
-    val_loss_epochs.append(np.mean(losses))
+    print("----------------------------------------------------------------")
+    
+    if epoch != 0:
+        val_loss_epochs.append(np.mean(losses))
 
     fcn_model.train() #DONT FORGET TO TURN THE TRAIN MODE BACK ON TO ENABLE BATCHNORM/DROPOUT!!
 
@@ -169,19 +170,15 @@ def val(epoch):
 
 def test():
     losses = []
-    mean_iou_scores = []
-    accuracy = []
 
-    best_model = FCN(n_class=n_class)
+    best_model = OGNet(n_class=n_class)
     best_model = best_model.to(device)
-    best_model.load_state_dict(torch.load("best_model.pt"))
+    best_model.load_state_dict(torch.load("best_model_og.pt"))
 
     #TODO: load the best model and complete the rest of the function for testing
     with torch.no_grad():
 
         for iter, (input, label) in enumerate(test_loader):
-
-            # both inputs and labels have to reside in the same device as the model's
             input = input.to(device)
             label = label.to(device)
             label = label.to(dtype=torch.long)
@@ -190,22 +187,18 @@ def test():
 
             loss = criterion(output, label)
             losses.append(loss.item())
-            predictions = nn.functional.softmax(output,dim=1)
-            pred = predictions.argmax(axis=1)
-            # pred = output.argmax(axis=1)
-
-            # mean_iou_scores.append(np.nanmean(iou(pred, label, n_class)))
-        
-            # accuracy.append(pixel_acc(pred, label))
+            pred = output.argmax(axis=1)
+            
+            if iter == 0:
+                first_image = pred[0].cpu()
+                first_label = label[0].cpu()
     
     # visualizing the segmented image
-    first_image = pred[0]
     segmented_image = np.ones((384,768,3))
     for cls in range(n_class):
         segmented_image[first_image == cls] = class2color[cls]
     plt.imsave("plots/test_segmented.png", segmented_image)
     
-    first_label = label[0]
     segmented_image = np.ones((384,768,3))
     for cls in range(n_class):
         segmented_image[first_label == cls] = class2color[cls]
@@ -215,7 +208,7 @@ if __name__ == "__main__":
     val(0)  # show the accuracy before training
     train()
     test()
-
+    
     # housekeeping
     gc.collect() 
     torch.cuda.empty_cache()
