@@ -1,4 +1,4 @@
-# CSE_251B_PA3
+# Semantic Segmentation
 
 ## Running the Code
 run `python starter.py` to run the code with the basic fcn model using cross entropy loss and without data augmentations
